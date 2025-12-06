@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Mixer | Local Chat Simulation</title>
+    <title>Room Mixer | Real-Time Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .card { background-color: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
@@ -24,32 +24,32 @@
 
         <!-- Screen 1: Landing/Entry -->
         <div id="landing-screen" class="card p-8 text-center">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">Room Mixer (Local Simulation)</h1>
-            <p class="text-sm text-gray-500 mb-6">Enter your name → Choose an option → Create/Join a room.</p>
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Room Mixer (Real-Time Chat)</h1>
+            <p class="text-sm text-gray-500 mb-6">Apna naam bharo → Option chuno → Room banao/Join karo. (Firebase)</p>
 
             <div class="space-y-4">
-                <input type="text" id="user-name" placeholder="Enter your name" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" maxlength="20">
+                <input type="text" id="user-name" placeholder="Apna naam (Enter your name)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" maxlength="20">
 
                 <!-- Room Code Generation/Joining -->
                 <div id="code-section" class="flex flex-col gap-3">
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <button id="generate-code-btn" class="btn-primary w-full sm:w-1/2" disabled>Generate Code & Create</button>
-                        <button id="random-join-btn" class="btn-secondary w-full sm:w-1/2" disabled>Random Join / Create</button>
+                        <button id="generate-code-btn" class="btn-primary w-full sm:w-1/2" disabled>Code Banao & Create Karo</button>
+                        <button id="random-join-btn" class="btn-secondary w-full sm:w-1/2" disabled>Random Join / Create Karo</button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="target-code" placeholder="Enter Code" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 uppercase" maxlength="6">
-                        <button id="enter-code-btn" class="btn-primary flex-shrink-0 px-4" disabled>Join Room</button>
+                        <input type="text" id="target-code" placeholder="Code Bharo (Enter Code)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 uppercase" maxlength="6">
+                        <button id="enter-code-btn" class="btn-primary flex-shrink-0 px-4" disabled>Room Join Karo</button>
                     </div>
                 </div>
 
                 <!-- Code Display -->
                 <div id="code-display" class="hidden bg-indigo-50 p-4 rounded-xl text-indigo-700 font-mono text-lg transition duration-300">
-                    Your Room Code: <span id="current-code" class="font-bold"></span>
+                    Tuhada Room Code: <span id="current-code" class="font-bold"></span>
                 </div>
             </div>
             
             <p id="loading-message" class="text-indigo-500 mt-4 text-sm font-medium flex items-center justify-center">
-                App initialized (Local Mode).
+                Firebase Init ho reha hai...
             </p>
             <p id="error-message" class="text-red-500 mt-4 text-sm font-medium"></p>
         </div>
@@ -57,15 +57,15 @@
         <!-- Screen 2: Options Modal -->
         <div id="options-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div class="card p-8 w-full max-w-lg">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Choose one of these 2 options</h2>
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">2 options chuno</h2>
 
                 <div id="option-cards" class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Options rendered by JS -->
                 </div>
 
                 <div class="flex justify-end gap-4">
-                    <button id="cancel-options-btn" class="btn-secondary">Cancel</button>
-                    <button id="confirm-options-btn" class="btn-primary" disabled>Confirm & Proceed</button>
+                    <button id="cancel-options-btn" class="btn-secondary">Cancel Karo</button>
+                    <button id="confirm-options-btn" class="btn-primary" disabled>Confirm & Aggge Vaddho</button>
                 </div>
             </div>
         </div>
@@ -88,16 +88,16 @@
                 <div class="lg:col-span-2">
                     <div id="chat-area" class="bg-gray-50 p-3 rounded-xl border mb-3 min-h-[250px] flex flex-col justify-end space-y-2">
                         <!-- Messages displayed here -->
-                        <div class="text-center text-sm text-gray-400 p-2">You joined room <span id="chat-joined-code" class="font-mono font-semibold"></span> — Start chatting!</div>
+                        <div class="text-center text-sm text-gray-400 p-2">Tusi room <span id="chat-joined-code" class="font-mono font-semibold"></span> join kar liya hai — Chat shuru karo!</div>
                     </div>
 
                     <div class="flex space-x-2">
-                        <input type="text" id="chat-input" placeholder="Type your message..." class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" autofocus>
-                        <button id="send-chat-btn" class="btn-primary flex-shrink-0 px-4">Send</button>
+                        <input type="text" id="chat-input" placeholder="Apna message type karo..." class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" autofocus>
+                        <button id="send-chat-btn" class="btn-primary flex-shrink-0 px-4">Bhejo</button>
                     </div>
 
                     <p class="text-xs text-gray-500 mt-2">
-                        This is a local simulation. Chat history is only saved in your browser's memory.
+                        Eh app real-time Firebase Firestore database use karda hai.
                     </p>
                 </div>
 
@@ -113,8 +113,11 @@
 
                     <!-- Room Controls -->
                     <div class="space-y-2">
-                        <button id="copy-code-btn" class="btn-secondary w-full">Copy Room Code</button>
-                        <button id="leave-room-btn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-red-600 transition duration-150 w-full">Leave Room</button>
+                        <button id="copy-code-btn" class="btn-secondary w-full">Room Code Copy Karo</button>
+                        <button id="leave-room-btn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-red-600 transition duration-150 w-full">Room Chhadd Do</button>
+                    </div>
+                    <div class="text-xs text-gray-400 break-all p-2 bg-gray-50 rounded-lg">
+                        Tuhada User ID: <span id="user-id-display"></span>
                     </div>
                 </div>
             </div>
@@ -122,18 +125,24 @@
 
     </div>
 
-    <!-- Pure JavaScript Logic (Purely Local Logic) -->
-    <script>
-        // Global Local Data Store (This is our simulated database)
-        let localRooms = {}; 
-        
-        // Global State Variables
+    <!-- Firebase and JavaScript Logic (Real-Time Network) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, updateDoc, arrayUnion, arrayRemove, where, getDocs, runTransaction, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Instances
+        let app, db, auth;
         let userId = null;
+        let authReady = false;
+
+        // Global State Variables
         let userName = '';
         let currentRoomCode = null;
         let selectedOption = null;
         let joinType = 'create';
-        
+        let unsubscribeRoom = null; // Listener for real-time room updates
+
         // UI Elements
         const ui = {
             landingScreen: document.getElementById('landing-screen'),
@@ -161,13 +170,20 @@
             generateCodeBtn: document.getElementById('generate-code-btn'),
             enterCodeBtn: document.getElementById('enter-code-btn'),
             randomJoinBtn: document.getElementById('random-join-btn'),
+            userIdDisplay: document.getElementById('user-id-display'),
         };
 
         // Room Options
         const ROOM_OPTIONS = [
-            { id: 1, name: "Public Chat Room", icon: "💬", description: "Open chat room, anyone can join with the code." },
-            { id: 2, name: "Private Chat Room", icon: "🔒", description: "Secret room, host's permission required (simulation only)." },
+            { id: 1, name: "Public Chat Room", icon: "💬", description: "Open chat room, koi vi join kar sakda hai." },
+            { id: 2, name: "Private Chat Room", icon: "🔒", description: "Secret room, sirf host de invite naal (Simple room)." },
         ];
+
+        // Firestore Paths (Mandatory Structure)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const getRoomPath = (code) => `artifacts/${appId}/public/data/rooms/${code}`;
+        const roomCollectionPath = `artifacts/${appId}/public/data/rooms`;
+
 
         // --- Core Helpers ---
 
@@ -177,7 +193,6 @@
             ui.roomScreen.classList.add('hidden');
             document.getElementById(screenId).classList.remove('hidden');
 
-            // Handle modal visibility
             if (screenId !== 'options-modal') {
                 ui.optionsModal.classList.remove('fixed', 'flex');
             } else {
@@ -197,12 +212,12 @@
 
         function validateUserAndCode(isCodeRequired = false) {
             userName = ui.userNameInput.value.trim();
-            if (!userName) {
-                displayError("Please enter your name.");
+            if (!userName || !authReady) {
+                displayError("Pehle apna naam bharo te Firebase di wait karo.");
                 return false;
             }
             if (isCodeRequired && ui.targetCodeInput.value.trim().length !== 6) {
-                displayError("Please enter a 6-character room code.");
+                displayError("Kripa karke 6-character da room code bharo.");
                 return false;
             }
             return true;
@@ -210,22 +225,65 @@
 
         function enableAppButtons() {
             ui.loadingMsg.classList.add('hidden');
-            ui.generateCodeBtn.disabled = false;
-            ui.randomJoinBtn.disabled = false;
+            const isDisabled = ui.userNameInput.value.trim().length === 0;
+
+            ui.generateCodeBtn.disabled = isDisabled;
+            ui.randomJoinBtn.disabled = isDisabled;
             ui.userNameInput.disabled = false;
             ui.targetCodeInput.disabled = false;
-            // The enter button remains disabled until both name and code are valid
-            ui.enterCodeBtn.disabled = true; 
-            console.log("Application buttons enabled.");
+            
+            const code = ui.targetCodeInput.value.trim();
+            ui.enterCodeBtn.disabled = isDisabled || code.length < 6;
         }
 
-        // --- Initialization ---
+        // --- Firebase Initialization and Auth ---
 
-        function initializeApp() {
-            // userId is a random value (since there is no real authentication)
-            userId = crypto.randomUUID();
-            renderOptions();
-            enableAppButtons();
+        async function initializeFirebase() {
+            try {
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug'); // For debugging in console
+
+                // Handle Auth
+                const authPromise = new Promise(resolve => {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            authReady = true;
+                            ui.userIdDisplay.textContent = userId;
+                            resolve();
+                        } else {
+                            try {
+                                if (typeof __initial_auth_token !== 'undefined') {
+                                    await signInWithCustomToken(auth, __initial_auth_token);
+                                } else {
+                                    await signInAnonymously(auth);
+                                }
+                            } catch (e) {
+                                console.error("Auth failed:", e);
+                                authReady = true; // Still mark as ready to show error
+                                resolve();
+                            }
+                        }
+                    });
+                });
+
+                await authPromise;
+                
+                // Final Check and Enable
+                if (authReady && userId) {
+                    enableAppButtons();
+                    console.log("Firebase te Auth successful.");
+                } else {
+                    displayError("Firebase Auth nahi ho paya. Dobara koshish karo.");
+                }
+
+            } catch (e) {
+                console.error("Firebase init error:", e);
+                displayError("App shuru karan vich galti: " + e.message);
+            }
         }
 
         // --- Options UI/Logic ---
@@ -256,141 +314,227 @@
             selectedOption = null;
             document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected-option'));
 
-            const actionText = (type === 'create') ? 'Create' : 'Join'; 
+            const actionText = (type === 'create') ? 'Banao' : 'Join Karo'; 
             ui.confirmOptionsBtn.textContent = `Confirm & ${actionText}`;
 
             showScreen('options-modal');
         }
 
-        // --- Room Management (Local Data Store) ---
+        // --- Room Management (Firestore) ---
 
-        function createRoom(code, option) {
-            if (localRooms[code]) {
-                displayError("This code already exists. Try again.");
+        async function createRoom(code, option) {
+            if (!authReady) return displayError("Auth ready nahi hai.");
+
+            const roomRef = doc(db, getRoomPath(code));
+            
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(roomRef);
+
+                    if (roomDoc.exists()) {
+                        throw new Error("Eh code pehle hi use ho chukka hai.");
+                    }
+
+                    const newRoomData = {
+                        code: code,
+                        optionType: option.name,
+                        hostId: userId,
+                        createdAt: Date.now(),
+                        participants: {
+                            [userId]: { name: userName, joinedAt: Date.now(), isHost: true }
+                        },
+                        chatHistory: [{
+                            senderId: 'SYSTEM',
+                            name: 'System',
+                            message: `${userName} ne room banaya.`,
+                            timestamp: Date.now()
+                        }],
+                        status: 'active'
+                    };
+                    transaction.set(roomRef, newRoomData);
+                });
+
+                console.log("Room ban gaya (Firestore):", code);
+                joinRoom(code); // Transaction successful, now join/start listening
+                return true;
+
+            } catch (e) {
+                console.error("Room create error:", e.message);
+                displayError("Room bana nahi: " + e.message);
                 return false;
             }
-
-            localRooms[code] = {
-                code: code,
-                optionType: option.name,
-                hostId: userId,
-                createdAt: Date.now(),
-                participants: {
-                    [userId]: { name: userName, joinedAt: Date.now(), isHost: true }
-                },
-                chatHistory: [],
-                status: 'active'
-            };
-
-            console.log("Room created (in Local Store):", code);
-            joinRoom(code);
-            return true;
         }
 
-        function joinRoom(code) {
-            const room = localRooms[code];
-            if (!room) {
-                displayError("Room code not found or room is closed.");
+        async function joinRoom(code) {
+            if (!authReady) return displayError("Auth ready nahi hai.");
+            if (unsubscribeRoom) unsubscribeRoom(); // Stop any previous listener
+
+            const roomRef = doc(db, getRoomPath(code));
+            currentRoomCode = code;
+            ui.roomHeaderCode.textContent = code;
+            ui.chatJoinedCode.textContent = code;
+            showScreen('room-screen');
+            
+            // 1. Transaction to add participant
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(roomRef);
+
+                    if (!roomDoc.exists() || roomDoc.data().status !== 'active') {
+                        throw new Error("Room code nahi labheya ya room band hai.");
+                    }
+
+                    const roomData = roomDoc.data();
+                    const participants = roomData.participants || {};
+
+                    if (participants[userId]) {
+                        // User already joined, just update name if needed
+                        participants[userId].name = userName;
+                    } else {
+                        // Check participant limit (max 8 for simulation)
+                        if (Object.keys(participants).length >= 8) {
+                            throw new Error("Room poora bhar chukka hai (max 8).");
+                        }
+                        
+                        // Add new participant
+                        participants[userId] = {
+                            name: userName,
+                            joinedAt: Date.now(),
+                            isHost: (roomData.hostId === userId)
+                        };
+
+                        // Add system message
+                        const systemMessage = {
+                            senderId: 'SYSTEM',
+                            name: 'System',
+                            message: `${userName} ne room join kar leya hai.`,
+                            timestamp: Date.now()
+                        };
+                        
+                        transaction.update(roomRef, {
+                            participants: participants,
+                            chatHistory: arrayUnion(systemMessage)
+                        });
+                    }
+                });
+            } catch (e) {
+                console.error("Join room transaction failed:", e.message);
+                displayError("Room join nahi ho paya: " + e.message);
+                currentRoomCode = null;
                 showScreen('landing-screen');
                 return;
             }
 
-            currentRoomCode = code;
-            ui.chatJoinedCode.textContent = code;
-
-            const participants = room.participants;
-
-            if (participants[userId]) {
-                console.log("User is already in the room.");
-                // Update name just in case
-                participants[userId].name = userName;
-            } else {
-                // Add new participant
-                if (Object.keys(participants).length >= 8) {
-                    displayError("Room is full (max 8 participants).");
-                    currentRoomCode = null;
-                    showScreen('landing-screen');
-                    return;
+            // 2. Set up Real-Time Listener
+            unsubscribeRoom = onSnapshot(roomRef, (doc) => {
+                if (doc.exists() && doc.data().status === 'active') {
+                    updateRoomUI(doc.data());
+                } else {
+                    // Room deleted or closed by host
+                    displayError("Room band ho gaya hai.");
+                    leaveRoom(false);
                 }
-
-                participants[userId] = {
-                    name: userName,
-                    joinedAt: Date.now(),
-                    isHost: (room.hostId === userId)
-                };
-
-                // Add system message
-                room.chatHistory.push({
-                    senderId: 'SYSTEM',
-                    name: 'System',
-                    message: `${userName} has joined the room.`,
-                    timestamp: Date.now()
-                });
-            }
-
-            // Update UI
-            updateRoomUI(room);
-            showScreen('room-screen');
-            ui.roomHeaderCode.textContent = currentRoomCode;
+            }, (error) => {
+                console.error("Real-time listener error:", error);
+                displayError("Real-time connection tut gaya: " + error.message);
+                leaveRoom(false);
+            });
         }
 
-        function randomJoinRoom() {
+        async function randomJoinRoom() {
             if (!validateUserAndCode()) return;
 
-            // Find any active room with available slots
-            const availableRooms = Object.values(localRooms).filter(room => 
-                Object.keys(room.participants).length < 8 && room.status === 'active'
-            );
+            const roomsRef = collection(db, roomCollectionPath);
+            // Query for active rooms with less than 8 participants
+            const q = query(roomsRef, where('status', '==', 'active'));
 
-            if (availableRooms.length > 0) {
-                // Random Join: Pick the first available room
-                const roomToJoin = availableRooms[0];
-                displayError(`Joining room ${roomToJoin.code} randomly...`);
-                joinRoom(roomToJoin.code); 
-            } else {
-                // Random Create Logic: If no rooms available, create a new public room
-                displayError("No available rooms found. Creating a new public room (Random Create).");
-                
-                // Use the Public Chat Room option
-                const publicOption = ROOM_OPTIONS.find(opt => opt.name === "Public Chat Room");
-                const newCode = getRoomCode();
-                
-                // Simulate creation process
-                if (createRoom(newCode, publicOption)) {
-                    // Update UI to show the generated code for user reference
-                    ui.currentCodeSpan.textContent = newCode;
-                    ui.codeDisplay.classList.remove('hidden');
+            try {
+                const querySnapshot = await getDocs(q);
+                let availableRooms = [];
+                querySnapshot.forEach(doc => {
+                    const room = doc.data();
+                    if (Object.keys(room.participants || {}).length < 8) {
+                        availableRooms.push(room);
+                    }
+                });
+
+                if (availableRooms.length > 0) {
+                    // Random Join: Pick the first available room (or random)
+                    const roomToJoin = availableRooms[0];
+                    displayError(`Room ${roomToJoin.code} vich randomly join kar rahe haan...`);
+                    joinRoom(roomToJoin.code);
+                } else {
+                    // Random Create Logic: If no rooms available, create a new public room
+                    displayError("Koi room available nahi. Nawa Public room bana rahe haan...");
+                    
+                    const publicOption = ROOM_OPTIONS.find(opt => opt.name === "Public Chat Room");
+                    const newCode = getRoomCode();
+                    
+                    if (await createRoom(newCode, publicOption)) {
+                        ui.currentCodeSpan.textContent = newCode;
+                        ui.codeDisplay.classList.remove('hidden');
+                    }
                 }
+            } catch (e) {
+                console.error("Random join error:", e);
+                displayError("Random join karan vich galti ho gayi.");
             }
         }
 
-        function leaveRoom() {
+        async function leaveRoom(navigate = true) {
             if (!currentRoomCode || !userId) return;
 
-            const room = localRooms[currentRoomCode];
-            if (room) {
-                // Remove participant
-                delete room.participants[userId];
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+                unsubscribeRoom = null;
+            }
 
-                // Add system message
-                room.chatHistory.push({
-                    senderId: 'SYSTEM',
-                    name: 'System',
-                    message: `${userName} has left the room.`,
-                    timestamp: Date.now()
+            const roomRef = doc(db, getRoomPath(currentRoomCode));
+            const roomCodeToLeave = currentRoomCode;
+            currentRoomCode = null; // Clear state immediately
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(roomRef);
+
+                    if (roomDoc.exists()) {
+                        const roomData = roomDoc.data();
+                        const participants = roomData.participants || {};
+                        
+                        // Remove participant
+                        if (participants[userId]) {
+                            delete participants[userId];
+
+                            // Add system message
+                            const systemMessage = {
+                                senderId: 'SYSTEM',
+                                name: 'System',
+                                message: `${userName} ne room chhadd ditta.`,
+                                timestamp: Date.now()
+                            };
+
+                            // Check if room should be deleted
+                            if (Object.keys(participants).length === 0) {
+                                transaction.delete(roomRef);
+                                console.log(`Room ${roomCodeToLeave} band kar ditta.`);
+                            } else {
+                                transaction.update(roomRef, {
+                                    participants: participants,
+                                    chatHistory: arrayUnion(systemMessage)
+                                });
+                            }
+                        }
+                    }
                 });
-
-                // If no participants remain, close the room (optional)
-                if (Object.keys(room.participants).length === 0) {
-                    delete localRooms[currentRoomCode];
-                    console.log(`Room ${currentRoomCode} closed.`);
-                }
+            } catch (e) {
+                console.error("Room chhaddan (leaving) vich galti:", e);
             }
 
             // Cleanup
-            currentRoomCode = null;
-            showScreen('landing-screen');
-            ui.userNameInput.value = userName; // Keep the name in the input
+            if (navigate) {
+                showScreen('landing-screen');
+                ui.userNameInput.value = userName;
+            }
         }
 
         // --- UI Rendering Functions ---
@@ -414,7 +558,7 @@
             Object.values(participants).sort((a, b) => b.isHost - a.isHost || a.joinedAt - b.joinedAt).forEach(p => {
                 const li = document.createElement('li');
                 const isHost = p.isHost ? ' (Host)' : '';
-                const isMe = p.name === userName ? ' (You)' : '';
+                const isMe = p.name === userName ? ' (Tusi)' : '';
                 li.className = 'text-gray-700';
                 li.innerHTML = `<span class="${p.isHost ? 'font-bold text-indigo-700' : ''}">${p.name}</span>${isHost}${isMe}`;
                 ui.participantList.appendChild(li);
@@ -428,7 +572,7 @@
                 const isMe = msg.senderId === userId;
                 const alignment = isMe ? 'self-end' : 'self-start';
                 const bgColor = isMe ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800';
-                const nameDisplay = isMe ? 'You' : msg.name;
+                const nameDisplay = isMe ? 'Tusi' : msg.name;
                 const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 const msgElement = document.createElement('div');
@@ -448,12 +592,11 @@
             ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
 
-        function sendChatMessage() {
+        async function sendChatMessage() {
             const message = ui.chatInput.value.trim();
             if (!message || !currentRoomCode) return;
 
-            const room = localRooms[currentRoomCode];
-            if (!room) return;
+            const roomRef = doc(db, getRoomPath(currentRoomCode));
 
             const newMessage = {
                 senderId: userId,
@@ -462,14 +605,18 @@
                 timestamp: Date.now()
             };
 
-            // Add message to Local data
-            room.chatHistory.push(newMessage);
-            
-            // Immediately update UI
-            updateRoomUI(room);
-            
-            ui.chatInput.value = '';
+            ui.chatInput.value = ''; // Clear input immediately
             ui.chatInput.focus();
+
+            try {
+                // Use arrayUnion to safely append message to the array
+                await updateDoc(roomRef, {
+                    chatHistory: arrayUnion(newMessage)
+                });
+            } catch (e) {
+                console.error("Message bhejan vich galti:", e);
+                displayError("Message bhejan vich galti ho gayi.");
+            }
         }
 
         // --- Event Listeners ---
@@ -487,12 +634,8 @@
             const code = ui.targetCodeInput.value.trim().toUpperCase();
             if (!validateUserAndCode(true)) return;
             
-            // Check if the room exists before joining
-            if (localRooms[code]) {
-                joinRoom(code);
-            } else {
-                displayError("The entered room code does not exist.");
-            }
+            // Just attempt to join; the joinRoom function handles existence check
+            joinRoom(code);
         });
 
         document.getElementById('random-join-btn').addEventListener('click', randomJoinRoom);
@@ -501,15 +644,19 @@
             showScreen('landing-screen');
         });
 
-        ui.confirmOptionsBtn.addEventListener('click', () => {
+        ui.confirmOptionsBtn.addEventListener('click', async () => {
             if (!selectedOption) {
-                displayError("Please choose an option.");
+                displayError("Kripa karke ek option chuno.");
                 return;
             }
 
             if (joinType === 'create') {
-                createRoom(currentRoomCode, selectedOption);
+                await createRoom(currentRoomCode, selectedOption);
             } 
+            // Join path is simple: just call joinRoom with existing code
+            // else if (joinType === 'join') { 
+            //     await joinRoom(currentRoomCode);
+            // } 
         });
 
         ui.sendChatBtn.addEventListener('click', sendChatMessage);
@@ -525,39 +672,26 @@
                 tempInput.value = currentRoomCode;
                 document.body.appendChild(tempInput);
                 tempInput.select();
-                // Use execCommand for copying to clipboard
                 document.execCommand('copy');
                 document.body.removeChild(tempInput);
                 
-                ui.copyCodeBtn.textContent = 'Copied!';
-                setTimeout(() => ui.copyCodeBtn.textContent = 'Copy Room Code', 2000);
+                ui.copyCodeBtn.textContent = 'Copy Ho Gaya!';
+                setTimeout(() => ui.copyCodeBtn.textContent = 'Room Code Copy Karo', 2000);
             }
         });
 
-        ui.leaveRoomBtn.addEventListener('click', leaveRoom);
+        ui.leaveRoomBtn.addEventListener('click', () => leaveRoom(true));
 
         // Enable/disable buttons based on name input
-        ui.userNameInput.addEventListener('input', () => {
-            const name = ui.userNameInput.value.trim();
-            const code = ui.targetCodeInput.value.trim();
-            const isDisabled = name.length === 0;
-
-            ui.generateCodeBtn.disabled = isDisabled;
-            ui.randomJoinBtn.disabled = isDisabled;
-            ui.enterCodeBtn.disabled = isDisabled || code.length < 6;
-        });
+        ui.userNameInput.addEventListener('input', enableAppButtons);
 
         // Enable/disable 'Join Room' button based on code input
-        ui.targetCodeInput.addEventListener('input', () => {
-            const name = ui.userNameInput.value.trim();
-            const code = ui.targetCodeInput.value.trim();
-
-            ui.enterCodeBtn.disabled = name.length === 0 || code.length < 6;
-        });
+        ui.targetCodeInput.addEventListener('input', enableAppButtons);
 
 
         // Initialize the App
-        initializeApp();
+        initializeFirebase();
+        renderOptions();
     </script>
 </body>
 </html>
