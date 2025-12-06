@@ -58,7 +58,7 @@
         <!-- Screen 2: Options Modal -->
         <div id="options-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div class="card p-8 w-full max-w-lg">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Choose one of these 4 options</h2>
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Choose one of these 2 options</h2>
 
                 <div id="option-cards" class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Options will be generated here by JS -->
@@ -176,8 +176,6 @@
         const ROOM_OPTIONS = [
             { id: 1, name: "Public Chat", icon: "💬", description: "Open chat, anyone can join with the code." },
             { id: 2, name: "Private Room", icon: "🔒", description: "Host approval required to join (simulated)." },
-            { id: 3, name: "Topic Room", icon: "🏷️", description: "Designed for a specific topic (e.g., music, homework)." },
-            { id: 4, name: "Random Mixer", icon: "🎲", description: "Ephemeral random matching (now only available by choice)." },
         ];
 
         // --- Core Helpers ---
