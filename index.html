@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Mixer | Quick Join & Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .card { background-color: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .btn-primary { @apply bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-indigo-700 transition duration-150 shadow-md; }
+        .btn-secondary { @apply bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl hover:bg-gray-300 transition duration-150; }
+        .option-card { @apply p-4 border border-gray-200 rounded-lg cursor-pointer transition duration-200 hover:shadow-lg hover:border-indigo-500; }
+        .selected-option { @apply border-indigo-600 ring-2 ring-indigo-300 bg-indigo-50; }
+        #chat-area { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div id="app-container" class="w-full max-w-2xl">
+
+        <!-- Screen 1: Landing/Entry -->
+        <div id="landing-screen" class="card p-8 text-center">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Room Mixer</h1>
+            <p class="text-sm text-gray-500 mb-6">Fill name → choose option → create/join room</p>
+
+            <div class="space-y-4">
+                <input type="text" id="user-name" placeholder="Enter your name" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" maxlength="20">
+
+                <!-- Room Code Generation/Joining -->
+                <div id="code-section" class="flex flex-col sm:flex-row gap-4">
+                    <button id="generate-code-btn" class="btn-primary w-full sm:w-1/2">Generate Code</button>
+                    <div class="w-full sm:w-1/2 flex gap-2">
+                        <input type="text" id="target-code" placeholder="Enter Code" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 uppercase" maxlength="6">
+                        <button id="enter-code-btn" class="btn-primary flex-shrink-0 px-4">Enter</button>
+                    </div>
+                </div>
+
+                <!-- Code Display -->
+                <div id="code-display" class="hidden bg-indigo-50 p-4 rounded-xl text-indigo-700 font-mono text-lg transition duration-300">
+                    Your Room Code: <span id="current-code" class="font-bold"></span>
+                </div>
+            </div>
+            
+            <!-- Removed RANDOM CREATE and RANDOM JOIN buttons -->
+            
+            <p id="error-message" class="text-red-500 mt-4 text-sm font-medium"></p>
+        </div>
+
+        <!-- Screen 2: Options Modal -->
+        <div id="options-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="card p-8 w-full max-w-lg">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 text-center">Choose one of these 4 options</h2>
+
+                <div id="option-cards" class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Options will be generated here by JS -->
+                </div>
+
+                <div class="flex justify-end gap-4">
+                    <button id="cancel-options-btn" class="btn-secondary">Cancel</button>
+                    <button id="confirm-options-btn" class="btn-primary" disabled>Confirm & Proceed</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: Room Screen -->
+        <div id="room-screen" class="hidden card p-6">
+            <div class="flex justify-between items-center border-b pb-4 mb-4">
+                <h2 class="text-xl font-bold text-indigo-600">Room: <span id="room-header-code"></span></h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                    <span id="room-header-option" class="font-medium px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full"></span>
+                    <span id="room-participant-count" class="flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <span id="p-count">1</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Chat Area (2/3 width on desktop) -->
+                <div class="lg:col-span-2">
+                    <div id="chat-area" class="bg-gray-50 p-3 rounded-xl border mb-3 min-h-[250px] flex flex-col justify-end space-y-2">
+                        <!-- Messages go here -->
+                        <div class="text-center text-sm text-gray-400 p-2">You joined room <span id="chat-joined-code" class="font-mono font-semibold"></span> — say hi!</div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <input type="text" id="chat-input" placeholder="Type a message..." class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" autofocus>
+                        <button id="send-chat-btn" class="btn-primary flex-shrink-0 px-4">Send</button>
+                    </div>
+
+                    <p class="text-xs text-gray-500 mt-2">
+                        Voice/Video is enabled by WebRTC, but requires a signaling server for full connection. Text chat uses Firestore.
+                    </p>
+                </div>
+
+                <!-- Right Sidebar (1/3 width on desktop) -->
+                <div class="lg:col-span-1 space-y-4">
+                    <!-- Participant List -->
+                    <div class="bg-white p-3 rounded-xl border">
+                        <h3 class="font-semibold mb-2">Participants (<span id="p-count-sidebar">1</span>)</h3>
+                        <ul id="participant-list" class="space-y-1 text-sm">
+                            <!-- Participants go here -->
+                        </ul>
+                    </div>
+
+                    <!-- Room Controls -->
+                    <div class="space-y-2">
+                        <button id="copy-code-btn" class="btn-secondary w-full">Copy Room Code</button>
+                        <button id="leave-room-btn" class="bg-red-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-red-600 transition duration-150 w-full">Leave Room</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, getDocs, arrayUnion, arrayRemove, runTransaction, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase and App Configuration
+        setLogLevel('Debug');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId, userName;
+        let currentRoomCode = null;
+        let currentRoomRef = null;
+        let selectedOption = null;
+        let joinType = 'create'; // Only 'create' and 'join' remain
+        let unsubscribeRoom = null;
+
+        // UI Elements
+        const ui = {
+            landingScreen: document.getElementById('landing-screen'),
+            optionsModal: document.getElementById('options-modal'),
+            roomScreen: document.getElementById('room-screen'),
+            userNameInput: document.getElementById('user-name'),
+            targetCodeInput: document.getElementById('target-code'),
+            currentCodeSpan: document.getElementById('current-code'),
+            codeDisplay: document.getElementById('code-display'),
+            errorMsg: document.getElementById('error-message'),
+            optionsCards: document.getElementById('option-cards'),
+            confirmOptionsBtn: document.getElementById('confirm-options-btn'),
+            roomHeaderCode: document.getElementById('room-header-code'),
+            roomHeaderOption: document.getElementById('room-header-option'),
+            pCount: document.getElementById('p-count'),
+            pCountSidebar: document.getElementById('p-count-sidebar'),
+            chatJoinedCode: document.getElementById('chat-joined-code'),
+            chatArea: document.getElementById('chat-area'),
+            chatInput: document.getElementById('chat-input'),
+            sendChatBtn: document.getElementById('send-chat-btn'),
+            participantList: document.getElementById('participant-list'),
+            copyCodeBtn: document.getElementById('copy-code-btn'),
+            leaveRoomBtn: document.getElementById('leave-room-btn'),
+        };
+
+        const ROOM_OPTIONS = [
+            { id: 1, name: "Public Chat", icon: "💬", description: "Open chat, anyone can join with the code." },
+            { id: 2, name: "Private Room", icon: "🔒", description: "Host approval required to join (simulated)." },
+            { id: 3, name: "Topic Room", icon: "🏷️", description: "Designed for a specific topic (e.g., music, homework)." },
+            { id: 4, name: "Random Mixer", icon: "🎲", description: "Ephemeral random matching (now only available by choice)." },
+        ];
+
+        // --- Core Helpers ---
+
+        function showScreen(screenId) {
+            ui.landingScreen.classList.add('hidden');
+            ui.optionsModal.classList.add('hidden');
+            ui.roomScreen.classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+
+            // Reset modal if it's not the target
+            if (screenId !== 'options-modal') {
+                ui.optionsModal.classList.remove('fixed', 'flex');
+            } else {
+                ui.optionsModal.classList.add('fixed', 'flex');
+            }
+        }
+
+        function displayError(message) {
+            ui.errorMsg.textContent = message;
+            setTimeout(() => ui.errorMsg.textContent = '', 5000);
+        }
+
+        function getRoomCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function validateUserAndCode(isCodeRequired = false) {
+            userName = ui.userNameInput.value.trim();
+            if (!userName) {
+                displayError("Name required if name empty.");
+                return false;
+            }
+            if (isCodeRequired && !ui.targetCodeInput.value.trim()) {
+                displayError("Please enter a room code.");
+                return false;
+            }
+            return true;
+        }
+
+        // --- Firebase & Auth Setup ---
+
+        async function initializeFirebase() {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config not available. Using anonymous sign-in only.");
+                app = initializeApp({}); // Initialize with empty config
+            } else {
+                app = initializeApp(firebaseConfig);
+            }
+
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Firebase Auth Ready. User ID:", userId);
+                    // Generate initial options UI
+                    renderOptions();
+                } else {
+                    console.log("No user signed in.");
+                }
+            });
+        }
+
+        // --- Options UI/Logic ---
+
+        function renderOptions() {
+            ui.optionsCards.innerHTML = ROOM_OPTIONS.map(opt => `
+                <div class="option-card flex flex-col items-center text-center p-4" data-id="${opt.id}" data-name="${opt.name}">
+                    <span class="text-3xl mb-2">${opt.icon}</span>
+                    <h4 class="font-semibold text-gray-800">${opt.name}</h4>
+                    <p class="text-xs text-gray-500 mt-1">${opt.description}</p>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected-option'));
+                    card.classList.add('selected-option');
+                    selectedOption = ROOM_OPTIONS.find(o => o.id === parseInt(card.dataset.id));
+                    ui.confirmOptionsBtn.disabled = false;
+                });
+            });
+        }
+
+        function openOptions(type, code = null) {
+            joinType = type;
+            currentRoomCode = code;
+            ui.confirmOptionsBtn.disabled = true;
+            selectedOption = null;
+            document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected-option'));
+
+            // Simplified action text since only 'create' remains for this flow
+            const actionText = (type === 'create') ? 'Create' : 'Join'; 
+            ui.confirmOptionsBtn.textContent = `Confirm & ${actionText}`;
+
+            showScreen('options-modal');
+        }
+
+        // --- Room Management (Firestore) ---
+
+        async function createRoom(code, option) {
+            const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, code);
+
+            const newRoomData = {
+                code: code,
+                optionType: option.name,
+                hostId: userId,
+                createdAt: Date.now(),
+                participants: {
+                    [userId]: { name: userName, joinedAt: Date.now(), isHost: true }
+                },
+                chatHistory: [],
+                discoverable: false, // Always false now that random join is removed
+                status: 'active'
+            };
+
+            try {
+                // Use setDoc with merge: false to ensure we are creating a new room
+                await setDoc(roomRef, newRoomData);
+                console.log("Room created successfully:", code);
+                joinRoom(code);
+                return true;
+            } catch (e) {
+                console.error("Error creating room:", e);
+                displayError("Failed to create room. Try a different code.");
+                return false;
+            }
+        }
+
+        async function joinRoom(code) {
+            currentRoomCode = code;
+            currentRoomRef = doc(db, `artifacts/${appId}/public/data/rooms`, code);
+            ui.chatJoinedCode.textContent = code;
+
+            try {
+                // Atomically update participants
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(currentRoomRef);
+                    if (!roomDoc.exists()) {
+                        throw "Invalid code if code not found.";
+                    }
+
+                    const room = roomDoc.data();
+                    const participants = room.participants || {};
+
+                    // Prevent rejoining if already in the room
+                    if (participants[userId]) {
+                        console.log("User already in room. Proceeding to room screen.");
+                        return;
+                    }
+
+                    // Max capacity check (simple, can be expanded)
+                    if (Object.keys(participants).length >= 8) {
+                        throw "Room is full if capacity reached.";
+                    }
+
+                    // Add new participant
+                    participants[userId] = {
+                        name: userName,
+                        joinedAt: Date.now(),
+                        isHost: (room.hostId === userId) // Host check for re-join
+                    };
+
+                    transaction.update(currentRoomRef, { participants: participants });
+                    transaction.update(currentRoomRef, {
+                        chatHistory: arrayUnion({
+                            senderId: 'SYSTEM',
+                            name: 'System',
+                            message: `${userName} has joined the room.`,
+                            timestamp: Date.now()
+                        })
+                    });
+                });
+
+                // Start real-time listener
+                listenToRoom(currentRoomRef);
+
+                // Transition UI
+                showScreen('room-screen');
+                ui.roomHeaderCode.textContent = currentRoomCode;
+
+                // Success message when joined
+                console.log(`You joined room ${currentRoomCode} — say hi!`);
+
+            } catch (error) {
+                console.error("Error joining room:", error);
+                displayError(error);
+                currentRoomCode = null;
+                currentRoomRef = null;
+                showScreen('landing-screen');
+            }
+        }
+
+        async function leaveRoom() {
+            if (!currentRoomCode || !userId) return;
+
+            // Remove participant
+            const participantUpdate = {};
+            // FIX: Use deleteField() from the modular SDK instead of FieldValue.delete()
+            participantUpdate[`participants.${userId}`] = deleteField();
+
+            try {
+                await updateDoc(currentRoomRef, participantUpdate);
+                await updateDoc(currentRoomRef, {
+                    chatHistory: arrayUnion({
+                        senderId: 'SYSTEM',
+                        name: 'System',
+                        message: `${userName} has left the room.`,
+                        timestamp: Date.now()
+                    })
+                });
+                console.log(`Left room ${currentRoomCode}`);
+            } catch (e) {
+                console.error("Error leaving room:", e);
+            }
+
+            // Cleanup
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+            }
+            currentRoomCode = null;
+            currentRoomRef = null;
+            showScreen('landing-screen');
+            ui.userNameInput.value = userName; // Keep name pre-filled
+        }
+
+        function listenToRoom(roomRef) {
+            if (unsubscribeRoom) {
+                unsubscribeRoom();
+            }
+
+            unsubscribeRoom = onSnapshot(roomRef, (docSnapshot) => {
+                if (!docSnapshot.exists()) {
+                    displayError("Room closed by host.");
+                    leaveRoom();
+                    return;
+                }
+
+                const room = docSnapshot.data();
+                if (!room) return;
+
+                // Update Header
+                ui.roomHeaderOption.textContent = room.optionType;
+
+                // Update Participants
+                const participants = room.participants || {};
+                const participantCount = Object.keys(participants).length;
+                ui.pCount.textContent = participantCount;
+                ui.pCountSidebar.textContent = participantCount;
+                renderParticipants(participants);
+
+                // Check if user was kicked or host closed room (not explicitly handled, but good safety check)
+                if (!participants[userId]) {
+                    if (currentRoomCode) { // Avoid double-leaving if already triggered
+                        displayError("You have been removed from the room.");
+                        leaveRoom();
+                    }
+                    return;
+                }
+
+                // Update Chat
+                renderChat(room.chatHistory || []);
+            }, (error) => {
+                console.error("Room snapshot error:", error);
+                displayError("Disconnected from room. Please try joining again.");
+                leaveRoom();
+            });
+        }
+
+        function renderParticipants(participants) {
+            ui.participantList.innerHTML = '';
+            Object.values(participants).sort((a, b) => b.isHost - a.isHost || a.joinedAt - b.joinedAt).forEach(p => {
+                const li = document.createElement('li');
+                const isHost = p.isHost ? ' (Host)' : '';
+                const isMe = p.name === userName ? ' (You)' : '';
+                li.className = 'text-gray-700';
+                li.innerHTML = `<span class="${p.isHost ? 'font-bold text-indigo-700' : ''}">${p.name}</span>${isHost}${isMe}`;
+                ui.participantList.appendChild(li);
+            });
+        }
+
+        function renderChat(messages) {
+            ui.chatArea.innerHTML = ''; // Clear existing messages
+            messages.forEach(msg => {
+                const isSystem = msg.senderId === 'SYSTEM';
+                const isMe = msg.senderId === userId;
+                const alignment = isMe ? 'self-end' : 'self-start';
+                const bgColor = isMe ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800';
+                const nameDisplay = isMe ? 'You' : msg.name;
+                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const msgElement = document.createElement('div');
+                msgElement.className = `max-w-[80%] p-2 rounded-lg ${alignment} ${isSystem ? 'text-center text-gray-500 italic text-xs w-full' : bgColor}`;
+
+                if (isSystem) {
+                    msgElement.textContent = msg.message;
+                } else {
+                    msgElement.innerHTML = `
+                        <div class="text-xs font-semibold ${isMe ? 'text-indigo-200' : 'text-gray-600'}">${nameDisplay}</div>
+                        <div>${msg.message}</div>
+                        <div class="text-[10px] opacity-70 mt-1 ${isMe ? 'text-right' : 'text-left'}">${time}</div>
+                    `;
+                }
+                ui.chatArea.appendChild(msgElement);
+            });
+            ui.chatArea.scrollTop = ui.chatArea.scrollHeight; // Scroll to bottom
+        }
+
+        async function sendChatMessage() {
+            const message = ui.chatInput.value.trim();
+            if (!message || !currentRoomRef) return;
+
+            const newMessage = {
+                senderId: userId,
+                name: userName,
+                message: message,
+                timestamp: Date.now()
+            };
+
+            try {
+                await updateDoc(currentRoomRef, {
+                    chatHistory: arrayUnion(newMessage)
+                });
+                ui.chatInput.value = '';
+                ui.chatInput.focus();
+            } catch (e) {
+                console.error("Error sending message:", e);
+                displayError("Could not send message.");
+            }
+        }
+
+        // Removed randomCreateFlow and randomJoinFlow functions
+
+        // --- WebRTC Placeholder Functions ---
+
+        const webrtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Note: Full WebRTC requires a signaling server (WebSockets/backend) to exchange 
+        // SDP (Session Description Protocol) and ICE Candidates. This code only sets up the PeerConnection.
+        function startWebRTC() {
+            try {
+                const pc = new RTCPeerConnection(webrtcConfig);
+                
+                // 1. Get local media (simulated)
+                // navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+                //     .then(stream => {
+                //         stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                //     })
+                //     .catch(err => {
+                //         console.warn("Could not get media stream. Chat only mode.", err);
+                //     });
+
+                // 2. Handle ICE candidates (needs signaling server to send/receive)
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        // SEND CANDIDATE to remote peer via Firestore/WebSocket
+                        console.log("WebRTC Candidate generated (needs signaling):", event.candidate);
+                    }
+                };
+                
+                // 3. Handle remote tracks (needs signaling server to set remote description)
+                pc.ontrack = (event) => {
+                    console.log("Remote track received (needs signaling):", event.streams[0]);
+                    // Attach remote stream to a video/audio element
+                };
+
+                console.log("WebRTC PeerConnection initialized. A signaling server is required for connection establishment.");
+                // Additional steps would involve creating offer/answer and exchanging them.
+
+            } catch (e) {
+                console.error("WebRTC initialization failed:", e);
+            }
+        }
+
+        // --- Event Listeners ---
+
+        document.getElementById('generate-code-btn').addEventListener('click', () => {
+            if (!validateUserAndCode()) return;
+
+            const newCode = getRoomCode();
+            ui.currentCodeSpan.textContent = newCode;
+            ui.codeDisplay.classList.remove('hidden');
+            // Flow A: Code generated, open options for custom room creation
+            openOptions('create', newCode);
+        });
+
+        document.getElementById('enter-code-btn').addEventListener('click', () => {
+            const code = ui.targetCodeInput.value.trim().toUpperCase();
+            if (!validateUserAndCode(true)) return;
+            // Flow B: Direct attempt to join by code
+            joinRoom(code);
+        });
+
+        // Removed event listeners for random-create-btn and random-join-btn
+
+        document.getElementById('cancel-options-btn').addEventListener('click', () => {
+            showScreen('landing-screen');
+        });
+
+        ui.confirmOptionsBtn.addEventListener('click', async () => {
+            if (!selectedOption) {
+                displayError("Please select an option.");
+                return;
+            }
+
+            // Decide action based on how options were opened
+            if (joinType === 'create') {
+                // Flow A (Custom Create)
+                await createRoom(currentRoomCode, selectedOption);
+            } 
+            // The 'random_create' and 'random_join' logic has been removed.
+
+            // If creation/joining was successful, the UI will transition in the room function.
+            // If failed, it returns to landing-screen and shows error.
+        });
+
+        ui.sendChatBtn.addEventListener('click', sendChatMessage);
+        ui.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        ui.copyCodeBtn.addEventListener('click', () => {
+            if (currentRoomCode) {
+                // Use document.execCommand for better compatibility in iframe
+                const tempInput = document.createElement('input');
+                tempInput.value = currentRoomCode;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                
+                ui.copyCodeBtn.textContent = 'Copied!';
+                setTimeout(() => ui.copyCodeBtn.textContent = 'Copy Room Code', 2000);
+            }
+        });
+
+        ui.leaveRoomBtn.addEventListener('click', leaveRoom);
+
+        // Initialize App
+        initializeFirebase();
+        startWebRTC(); // Initialize WebRTC (placeholder for signaling)
+    </script>
+</body>
+</html>
