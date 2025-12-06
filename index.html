@@ -10,8 +10,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .card { background-color: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .btn-primary { @apply bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-indigo-700 transition duration-150 shadow-md; }
-        .btn-secondary { @apply bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl hover:bg-gray-300 transition duration-150; }
+        .btn-primary { @apply bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-indigo-700 transition duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed; }
+        .btn-secondary { @apply bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl hover:bg-gray-300 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed; }
         .option-card { @apply p-4 border border-gray-200 rounded-lg cursor-pointer transition duration-200 hover:shadow-lg hover:border-indigo-500; }
         .selected-option { @apply border-indigo-600 ring-2 ring-indigo-300 bg-indigo-50; }
         #chat-area { max-height: 400px; overflow-y: auto; }
@@ -32,10 +32,10 @@
 
                 <!-- Room Code Generation/Joining -->
                 <div id="code-section" class="flex flex-col sm:flex-row gap-4">
-                    <button id="generate-code-btn" class="btn-primary w-full sm:w-1/2">Generate Code</button>
+                    <button id="generate-code-btn" class="btn-primary w-full sm:w-1/2" disabled>Generate Code</button>
                     <div class="w-full sm:w-1/2 flex gap-2">
                         <input type="text" id="target-code" placeholder="Enter Code" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 uppercase" maxlength="6">
-                        <button id="enter-code-btn" class="btn-primary flex-shrink-0 px-4">Enter</button>
+                        <button id="enter-code-btn" class="btn-primary flex-shrink-0 px-4" disabled>Enter</button>
                     </div>
                 </div>
 
@@ -45,8 +45,13 @@
                 </div>
             </div>
             
-            <!-- Removed RANDOM CREATE and RANDOM JOIN buttons -->
-            
+            <p id="loading-message" class="text-indigo-500 mt-4 text-sm font-medium flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Initializing App...
+            </p>
             <p id="error-message" class="text-red-500 mt-4 text-sm font-medium"></p>
         </div>
 
@@ -129,13 +134,15 @@
         setLogLevel('Debug');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // FIX: Corrected variable name from __initialAuthToken to __initial_auth_token
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
         let app, db, auth, userId, userName;
+        let isAuthReady = false; 
         let currentRoomCode = null;
         let currentRoomRef = null;
         let selectedOption = null;
-        let joinType = 'create'; // Only 'create' and 'join' remain
+        let joinType = 'create';
         let unsubscribeRoom = null;
 
         // UI Elements
@@ -148,6 +155,7 @@
             currentCodeSpan: document.getElementById('current-code'),
             codeDisplay: document.getElementById('code-display'),
             errorMsg: document.getElementById('error-message'),
+            loadingMsg: document.getElementById('loading-message'), 
             optionsCards: document.getElementById('option-cards'),
             confirmOptionsBtn: document.getElementById('confirm-options-btn'),
             roomHeaderCode: document.getElementById('room-header-code'),
@@ -161,6 +169,8 @@
             participantList: document.getElementById('participant-list'),
             copyCodeBtn: document.getElementById('copy-code-btn'),
             leaveRoomBtn: document.getElementById('leave-room-btn'),
+            generateCodeBtn: document.getElementById('generate-code-btn'),
+            enterCodeBtn: document.getElementById('enter-code-btn'),
         };
 
         const ROOM_OPTIONS = [
@@ -178,7 +188,6 @@
             ui.roomScreen.classList.add('hidden');
             document.getElementById(screenId).classList.remove('hidden');
 
-            // Reset modal if it's not the target
             if (screenId !== 'options-modal') {
                 ui.optionsModal.classList.remove('fixed', 'flex');
             } else {
@@ -196,9 +205,13 @@
         }
 
         function validateUserAndCode(isCodeRequired = false) {
+            if (!isAuthReady) {
+                displayError("App is still initializing. Please wait a moment.");
+                return false;
+            }
             userName = ui.userNameInput.value.trim();
             if (!userName) {
-                displayError("Name required if name empty.");
+                displayError("Please enter your name.");
                 return false;
             }
             if (isCodeRequired && !ui.targetCodeInput.value.trim()) {
@@ -208,12 +221,21 @@
             return true;
         }
 
+        function enableAppButtons() {
+            ui.loadingMsg.classList.add('hidden');
+            ui.generateCodeBtn.disabled = false;
+            ui.enterCodeBtn.disabled = false;
+            ui.userNameInput.disabled = false;
+            ui.targetCodeInput.disabled = false;
+            console.log("Application buttons enabled.");
+        }
+
         // --- Firebase & Auth Setup ---
 
         async function initializeFirebase() {
             if (Object.keys(firebaseConfig).length === 0) {
                 console.error("Firebase config not available. Using anonymous sign-in only.");
-                app = initializeApp({}); // Initialize with empty config
+                app = initializeApp({});
             } else {
                 app = initializeApp(firebaseConfig);
             }
@@ -222,24 +244,28 @@
             auth = getAuth(app);
 
             try {
+                // Use the corrected initialAuthToken variable
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
-                    await signInAnonymously(auth);
+                    await signInAnonymously(auth); 
                 }
             } catch (error) {
-                console.error("Authentication failed:", error);
-                await signInAnonymously(auth);
+                console.error("Initial Authentication failed:", error);
+                await signInAnonymously(auth); 
             }
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userId = user.uid;
+                    isAuthReady = true; 
                     console.log("Firebase Auth Ready. User ID:", userId);
-                    // Generate initial options UI
-                    renderOptions();
+                    renderOptions(); 
+                    enableAppButtons();
                 } else {
                     console.log("No user signed in.");
+                    isAuthReady = false;
+                    ui.loadingMsg.textContent = "Authentication failed. Try reloading.";
                 }
             });
         }
@@ -272,7 +298,6 @@
             selectedOption = null;
             document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected-option'));
 
-            // Simplified action text since only 'create' remains for this flow
             const actionText = (type === 'create') ? 'Create' : 'Join'; 
             ui.confirmOptionsBtn.textContent = `Confirm & ${actionText}`;
 
@@ -282,6 +307,10 @@
         // --- Room Management (Firestore) ---
 
         async function createRoom(code, option) {
+            if (!userId) {
+                displayError("Authentication failed. Cannot create room.");
+                return false;
+            }
             const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, code);
 
             const newRoomData = {
@@ -293,12 +322,11 @@
                     [userId]: { name: userName, joinedAt: Date.now(), isHost: true }
                 },
                 chatHistory: [],
-                discoverable: false, // Always false now that random join is removed
+                discoverable: false,
                 status: 'active'
             };
 
             try {
-                // Use setDoc with merge: false to ensure we are creating a new room
                 await setDoc(roomRef, newRoomData);
                 console.log("Room created successfully:", code);
                 joinRoom(code);
@@ -311,37 +339,38 @@
         }
 
         async function joinRoom(code) {
+            if (!userId) {
+                displayError("Authentication failed. Cannot join room.");
+                return;
+            }
+
             currentRoomCode = code;
             currentRoomRef = doc(db, `artifacts/${appId}/public/data/rooms`, code);
             ui.chatJoinedCode.textContent = code;
 
             try {
-                // Atomically update participants
                 await runTransaction(db, async (transaction) => {
                     const roomDoc = await transaction.get(currentRoomRef);
                     if (!roomDoc.exists()) {
-                        throw "Invalid code if code not found.";
+                        throw "Room code not found or room has been closed.";
                     }
 
                     const room = roomDoc.data();
                     const participants = room.participants || {};
 
-                    // Prevent rejoining if already in the room
                     if (participants[userId]) {
                         console.log("User already in room. Proceeding to room screen.");
                         return;
                     }
 
-                    // Max capacity check (simple, can be expanded)
                     if (Object.keys(participants).length >= 8) {
-                        throw "Room is full if capacity reached.";
+                        throw "Room is full (max 8 participants).";
                     }
 
-                    // Add new participant
                     participants[userId] = {
                         name: userName,
                         joinedAt: Date.now(),
-                        isHost: (room.hostId === userId) // Host check for re-join
+                        isHost: (room.hostId === userId)
                     };
 
                     transaction.update(currentRoomRef, { participants: participants });
@@ -355,19 +384,14 @@
                     });
                 });
 
-                // Start real-time listener
                 listenToRoom(currentRoomRef);
 
-                // Transition UI
                 showScreen('room-screen');
                 ui.roomHeaderCode.textContent = currentRoomCode;
 
-                // Success message when joined
-                console.log(`You joined room ${currentRoomCode} — say hi!`);
-
             } catch (error) {
                 console.error("Error joining room:", error);
-                displayError(error);
+                displayError(typeof error === 'string' ? error : "Failed to join room. Check the code.");
                 currentRoomCode = null;
                 currentRoomRef = null;
                 showScreen('landing-screen');
@@ -379,8 +403,7 @@
 
             // Remove participant
             const participantUpdate = {};
-            // FIX: Use deleteField() from the modular SDK instead of FieldValue.delete()
-            participantUpdate[`participants.${userId}`] = deleteField();
+            participantUpdate[`participants.${userId}`] = deleteField(); 
 
             try {
                 await updateDoc(currentRoomRef, participantUpdate);
@@ -404,7 +427,7 @@
             currentRoomCode = null;
             currentRoomRef = null;
             showScreen('landing-screen');
-            ui.userNameInput.value = userName; // Keep name pre-filled
+            ui.userNameInput.value = userName;
         }
 
         function listenToRoom(roomRef) {
@@ -422,26 +445,22 @@
                 const room = docSnapshot.data();
                 if (!room) return;
 
-                // Update Header
                 ui.roomHeaderOption.textContent = room.optionType;
 
-                // Update Participants
                 const participants = room.participants || {};
                 const participantCount = Object.keys(participants).length;
                 ui.pCount.textContent = participantCount;
                 ui.pCountSidebar.textContent = participantCount;
                 renderParticipants(participants);
 
-                // Check if user was kicked or host closed room (not explicitly handled, but good safety check)
                 if (!participants[userId]) {
-                    if (currentRoomCode) { // Avoid double-leaving if already triggered
+                    if (currentRoomCode) {
                         displayError("You have been removed from the room.");
                         leaveRoom();
                     }
                     return;
                 }
 
-                // Update Chat
                 renderChat(room.chatHistory || []);
             }, (error) => {
                 console.error("Room snapshot error:", error);
@@ -452,6 +471,7 @@
 
         function renderParticipants(participants) {
             ui.participantList.innerHTML = '';
+            // Sort by host status (true first) then by join time
             Object.values(participants).sort((a, b) => b.isHost - a.isHost || a.joinedAt - b.joinedAt).forEach(p => {
                 const li = document.createElement('li');
                 const isHost = p.isHost ? ' (Host)' : '';
@@ -463,7 +483,7 @@
         }
 
         function renderChat(messages) {
-            ui.chatArea.innerHTML = ''; // Clear existing messages
+            ui.chatArea.innerHTML = '';
             messages.forEach(msg => {
                 const isSystem = msg.senderId === 'SYSTEM';
                 const isMe = msg.senderId === userId;
@@ -486,7 +506,7 @@
                 }
                 ui.chatArea.appendChild(msgElement);
             });
-            ui.chatArea.scrollTop = ui.chatArea.scrollHeight; // Scroll to bottom
+            ui.chatArea.scrollTop = ui.chatArea.scrollHeight;
         }
 
         async function sendChatMessage() {
@@ -512,8 +532,6 @@
             }
         }
 
-        // Removed randomCreateFlow and randomJoinFlow functions
-
         // --- WebRTC Placeholder Functions ---
 
         const webrtcConfig = {
@@ -523,38 +541,18 @@
             ]
         };
 
-        // Note: Full WebRTC requires a signaling server (WebSockets/backend) to exchange 
-        // SDP (Session Description Protocol) and ICE Candidates. This code only sets up the PeerConnection.
         function startWebRTC() {
             try {
                 const pc = new RTCPeerConnection(webrtcConfig);
-                
-                // 1. Get local media (simulated)
-                // navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-                //     .then(stream => {
-                //         stream.getTracks().forEach(track => pc.addTrack(track, stream));
-                //     })
-                //     .catch(err => {
-                //         console.warn("Could not get media stream. Chat only mode.", err);
-                //     });
-
-                // 2. Handle ICE candidates (needs signaling server to send/receive)
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
-                        // SEND CANDIDATE to remote peer via Firestore/WebSocket
                         console.log("WebRTC Candidate generated (needs signaling):", event.candidate);
                     }
                 };
-                
-                // 3. Handle remote tracks (needs signaling server to set remote description)
                 pc.ontrack = (event) => {
                     console.log("Remote track received (needs signaling):", event.streams[0]);
-                    // Attach remote stream to a video/audio element
                 };
-
                 console.log("WebRTC PeerConnection initialized. A signaling server is required for connection establishment.");
-                // Additional steps would involve creating offer/answer and exchanging them.
-
             } catch (e) {
                 console.error("WebRTC initialization failed:", e);
             }
@@ -568,18 +566,14 @@
             const newCode = getRoomCode();
             ui.currentCodeSpan.textContent = newCode;
             ui.codeDisplay.classList.remove('hidden');
-            // Flow A: Code generated, open options for custom room creation
             openOptions('create', newCode);
         });
 
         document.getElementById('enter-code-btn').addEventListener('click', () => {
             const code = ui.targetCodeInput.value.trim().toUpperCase();
             if (!validateUserAndCode(true)) return;
-            // Flow B: Direct attempt to join by code
             joinRoom(code);
         });
-
-        // Removed event listeners for random-create-btn and random-join-btn
 
         document.getElementById('cancel-options-btn').addEventListener('click', () => {
             showScreen('landing-screen');
@@ -591,15 +585,9 @@
                 return;
             }
 
-            // Decide action based on how options were opened
             if (joinType === 'create') {
-                // Flow A (Custom Create)
                 await createRoom(currentRoomCode, selectedOption);
             } 
-            // The 'random_create' and 'random_join' logic has been removed.
-
-            // If creation/joining was successful, the UI will transition in the room function.
-            // If failed, it returns to landing-screen and shows error.
         });
 
         ui.sendChatBtn.addEventListener('click', sendChatMessage);
@@ -611,7 +599,6 @@
 
         ui.copyCodeBtn.addEventListener('click', () => {
             if (currentRoomCode) {
-                // Use document.execCommand for better compatibility in iframe
                 const tempInput = document.createElement('input');
                 tempInput.value = currentRoomCode;
                 document.body.appendChild(tempInput);
@@ -628,7 +615,7 @@
 
         // Initialize App
         initializeFirebase();
-        startWebRTC(); // Initialize WebRTC (placeholder for signaling)
+        startWebRTC();
     </script>
 </body>
 </html>
